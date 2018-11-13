@@ -1,0 +1,9 @@
+apiVersion: images.compute.gce/v1alpha1
+kind: Image
+metadata:
+  name: example
+spec:
+  name: example
+  description: image for operations manager
+  rawDisk:
+    source: https://storage.googleapis.com/ops-manager-us/pcf-gcp-2.3-build.184.tar.gz

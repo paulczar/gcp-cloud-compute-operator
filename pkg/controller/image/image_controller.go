@@ -1,4 +1,4 @@
-package address
+package image
 
 import (
 	"context"
@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/mitchellh/mapstructure"
-	addressesv1alpha1 "github.com/paulczar/gcp-cloud-compute-operator/pkg/apis/addresses/v1alpha1"
+	imagesv1alpha1 "github.com/paulczar/gcp-cloud-compute-operator/pkg/apis/images/v1alpha1"
 	"github.com/paulczar/gcp-cloud-compute-operator/pkg/gce"
 	"github.com/paulczar/gcp-cloud-compute-operator/pkg/utils"
 	compute "google.golang.org/api/compute/v1"
@@ -21,12 +21,12 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
-const (
-	finalizer                 = "finalizer.compute.gce"
-	reconcilePeriodAnnotation = "compute.gce/reconcile-period"
-)
+/**
+* USER ACTION REQUIRED: This is a scaffold file intended for the user to modify with their own Controller
+* business logic.  Delete these comments after modifying this file.*
+ */
 
-// Add creates a new Address Controller and adds it to the Manager. The Manager will set fields on the Controller
+// Add creates a new Image Controller and adds it to the Manager. The Manager will set fields on the Controller
 // and Start it when the Manager is Started.
 func Add(mgr manager.Manager) error {
 	return add(mgr, newReconciler(mgr))
@@ -34,39 +34,40 @@ func Add(mgr manager.Manager) error {
 
 // newReconciler returns a new reconcile.Reconciler
 func newReconciler(mgr manager.Manager) reconcile.Reconciler {
-	gce, err := gce.New("")
+	gceNew, err := gce.New("")
 	if err != nil {
 		panic(err)
 	}
-	return &ReconcileAddress{
+	return &ReconcileImage{
 		client: mgr.GetClient(),
 		scheme: mgr.GetScheme(),
-		gce:    gce,
+		gce:    gceNew,
 		reconcileResult: reconcile.Result{
 			RequeueAfter: time.Duration(5 * time.Second),
 		},
+		k8sObject: &imagesv1alpha1.Image{},
 	}
 }
 
 // add adds a new Controller to mgr with r as the reconcile.Reconciler
 func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	// Create a new controller
-	c, err := controller.New("address-controller", mgr, controller.Options{Reconciler: r})
+	c, err := controller.New("image-controller", mgr, controller.Options{Reconciler: r})
 	if err != nil {
 		return err
 	}
 
-	// Watch for changes to primary resource Address
-	err = c.Watch(&source.Kind{Type: &addressesv1alpha1.Address{}}, &handler.EnqueueRequestForObject{})
+	// Watch for changes to primary resource Image
+	err = c.Watch(&source.Kind{Type: &imagesv1alpha1.Image{}}, &handler.EnqueueRequestForObject{})
 	if err != nil {
 		return err
 	}
 
 	// TODO(user): Modify this to be the types you create that are owned by the primary resource
-	// Watch for changes to secondary resource Pods and requeue the owner Address
+	// Watch for changes to secondary resource Pods and requeue the owner Image
 	err = c.Watch(&source.Kind{Type: &corev1.Pod{}}, &handler.EnqueueRequestForOwner{
 		IsController: true,
-		OwnerType:    &addressesv1alpha1.Address{},
+		OwnerType:    &imagesv1alpha1.Image{},
 	})
 	if err != nil {
 		return err
@@ -75,10 +76,10 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	return nil
 }
 
-var _ reconcile.Reconciler = &ReconcileAddress{}
+var _ reconcile.Reconciler = &ReconcileImage{}
 
-// ReconcileAddress reconciles a Address object
-type ReconcileAddress struct {
+// ReconcileImage reconciles a Image object
+type ReconcileImage struct {
 	// This client, initialized using mgr.Client() above, is a split client
 	// that reads objects from the cache and writes to the apiserver
 	client          client.Client
@@ -86,17 +87,18 @@ type ReconcileAddress struct {
 	gce             *gce.Client
 	reconcileResult reconcile.Result
 	annotations     map[string]string
-	spec            *compute.Address
+	spec            *compute.Image
+	k8sObject       *imagesv1alpha1.Image
 }
 
-// Reconcile reads that state of the cluster for a Address object and makes changes based on the state read
-// and what is in the Address.Spec
-func (r *ReconcileAddress) Reconcile(request reconcile.Request) (reconcile.Result, error) {
+// Reconcile reads that state of the cluster for a Image object and makes changes based on the state read
+// and what is in the Image.Spec
+func (r *ReconcileImage) Reconcile(request reconcile.Request) (reconcile.Result, error) {
 	log.Printf("Reconciling Address %s/%s\n", request.Namespace, request.Name)
 
+	var finalizer = utils.Finalizer
 	// Fetch the Address r.k8sObject
-	k8sObject := &addressesv1alpha1.Address{}
-	err := r.client.Get(context.TODO(), request.NamespacedName, k8sObject)
+	err := r.client.Get(context.TODO(), request.NamespacedName, r.k8sObject)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			log.Printf("Request object not found, could have been deleted after reconcile request.")
@@ -104,35 +106,35 @@ func (r *ReconcileAddress) Reconcile(request reconcile.Request) (reconcile.Resul
 			// Return and don't requeue
 			return reconcile.Result{}, nil
 		}
-		log.Printf("Error reading the object - requeue the request.")
+		log.Printf("Error reading the object - requeue the request %s.", err.Error())
 		return r.reconcileResult, err
 	}
 
 	// Define a new instance object
-	err = mapstructure.Decode(k8sObject.Spec, &r.spec)
+	err = mapstructure.Decode(r.k8sObject.Spec, &r.spec)
 	if err != nil {
 		panic(err)
 	}
 
 	// fetch annotations
-	r.annotations = k8sObject.GetAnnotations()
+	r.annotations = r.k8sObject.GetAnnotations()
 
 	// update requeue duration based on annotation
-	duration, err := time.ParseDuration(utils.GetAnnotation(r.annotations, reconcilePeriodAnnotation))
+	duration, err := time.ParseDuration(utils.GetAnnotation(r.annotations, utils.ReconcilePeriodAnnotation))
 	if err == nil {
 		r.reconcileResult.RequeueAfter = duration
 	}
 
 	// check if the resource is set to be deleted
 	// stolen from https://github.com/operator-framework/operator-sdk/blob/fc9b6b1277b644d152534b22614351aa3d1405ba/pkg/ansible/controller/reconcile.go
-	deleted := k8sObject.GetDeletionTimestamp() != nil
-	pendingFinalizers := k8sObject.GetFinalizers()
+	deleted := r.k8sObject.GetDeletionTimestamp() != nil
+	pendingFinalizers := r.k8sObject.GetFinalizers()
 	finalizerExists := len(pendingFinalizers) > 0
 	if !finalizerExists && !deleted && !utils.Contains(pendingFinalizers, finalizer) {
 		log.Printf("Adding finalizer %s to resource", finalizer)
 		finalizers := append(pendingFinalizers, finalizer)
-		k8sObject.SetFinalizers(finalizers)
-		err := r.client.Update(context.TODO(), k8sObject)
+		r.k8sObject.SetFinalizers(finalizers)
+		err := r.client.Update(context.TODO(), r.k8sObject)
 		if err != nil {
 			return r.reconcileResult, err
 		}
@@ -146,20 +148,20 @@ func (r *ReconcileAddress) Reconcile(request reconcile.Request) (reconcile.Resul
 	// if it doesn't existin in gcp and is set to be deleted,
 	// then we can strip out the finalizer to let k8s actually delete it.
 	if gceObject == nil && deleted && finalizerExists {
-		log.Printf("reconcile: remove finalizer %s from %s/%s", finalizer, k8sObject.Namespace, k8sObject.Name)
+		log.Printf("reconcile: remove finalizer %s from %s/%s", finalizer, r.k8sObject.Namespace, r.k8sObject.Name)
 		finalizers := []string{}
 		for _, pendingFinalizer := range pendingFinalizers {
 			if pendingFinalizer != finalizer {
 				finalizers = append(finalizers, pendingFinalizer)
 			}
 		}
-		k8sObject.SetFinalizers(finalizers)
-		err := r.client.Update(context.TODO(), k8sObject)
+		r.k8sObject.SetFinalizers(finalizers)
+		err := r.client.Update(context.TODO(), r.k8sObject)
 		if err != nil {
 			return r.reconcileResult, err
 		}
 		//todo fix this to stop requeuing
-		log.Printf("reconcile: Successfully deleted %s/%s, do not requeue", k8sObject.Namespace, k8sObject.Name)
+		log.Printf("reconcile: Successfully deleted %s/%s, do not requeue", r.k8sObject.Namespace, r.k8sObject.Name)
 		return reconcile.Result{Requeue: false}, nil
 		//r.reconcileResult.RequeueAfter, _ = time.ParseDuration("10m")
 	}
@@ -173,7 +175,7 @@ func (r *ReconcileAddress) Reconcile(request reconcile.Request) (reconcile.Resul
 	if gceObject != nil {
 		//spew.Dump(gceObject)
 		if deleted && finalizerExists {
-			log.Printf("reconcile: time to delete %s/%s", r.spec.Region, r.spec.Name)
+			log.Printf("reconcile: time to delete %s", r.spec.Name)
 			err := r.destroy()
 			if err != nil {
 				r.reconcileResult.RequeueAfter, _ = time.ParseDuration("5s")
@@ -182,19 +184,20 @@ func (r *ReconcileAddress) Reconcile(request reconcile.Request) (reconcile.Resul
 			r.reconcileResult.RequeueAfter, _ = time.ParseDuration("5s")
 			return r.reconcileResult, err
 		}
-		log.Printf("reconcile: database instance %s/%s already exists", r.spec.Region, r.spec.Name)
-		if k8sObject.Status.Status == "RESERVED" {
-			log.Printf("reconcile: successfully created %s/%s, change requeue to 10mins so we don't stampede gcp.", k8sObject.Namespace, k8sObject.Name)
+		log.Printf("reconcile: resource %s already exists", r.spec.Name)
+		if r.k8sObject.Status.Status == "READY" {
+			log.Printf("reconcile: successfully created %s/%s, change requeue to 10mins so we don't stampede gcp.", r.k8sObject.Namespace, r.k8sObject.Name)
 			r.reconcileResult.RequeueAfter, _ = time.ParseDuration("10m")
 			return r.reconcileResult, nil
 		}
+		if r.k8sObject.Status.Status == "FAILED" {
+			return reconcile.Result{}, nil
+		}
 		// update our k8s resource to include status from database
-		k8sObject.Status.Status = gceObject.Status
-		k8sObject.Status.IPAddress = gceObject.Address
-		k8sObject.Status.SelfLink = gceObject.SelfLink
-		k8sObject.Status.Region = gceObject.Region
-		log.Printf("reconcile: update k8s status for %s/%s", k8sObject.Namespace, k8sObject.Name)
-		err = r.client.Update(context.TODO(), k8sObject)
+		r.k8sObject.Status.Status = gceObject.Status
+		r.k8sObject.Status.SelfLink = gceObject.SelfLink
+		log.Printf("reconcile: update k8s status for %s/%s", r.k8sObject.Namespace, r.k8sObject.Name)
+		err = r.client.Update(context.TODO(), r.k8sObject)
 		if err != nil {
 			return r.reconcileResult, err
 		}

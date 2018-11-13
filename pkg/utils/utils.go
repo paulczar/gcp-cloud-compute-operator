@@ -1,5 +1,12 @@
 package utils
 
+const (
+	// Finalizer is the string for the k8s finalizer
+	Finalizer = "finalizer.compute.gce"
+	// ReconcilePeriodAnnotation is the annotation to accept alternative reconcile-period
+	ReconcilePeriodAnnotation = "compute.gce/reconcile-period"
+)
+
 // GetAnnotation returns a thing
 func GetAnnotation(annotations map[string]string, a string) string {
 	if res, ok := annotations[a]; ok {

@@ -38,3 +38,15 @@ rules:
   - '*'
   verbs:
   - '*'
+- apiGroups:
+  - images.compute.gce
+  resources:
+  - '*'
+  verbs:
+  - '*'
+- apiGroups:
+  - compute.gce
+  resources:
+  - '*'
+  verbs:
+  - '*'

@@ -21,7 +21,7 @@ Currently supports creating and destroying the following GCP Services:
 ## Add new gcp compute service
 
 ```
-API=addresses.compute.gce/v1alpha1 KIND=Address
+API=compute.gce/v1alpha1 KIND=Network
 operator-sdk add api --api-version=$API --kind=$KIND
 operator-sdk add controller --api-version=$API --kind=$KIND
 ```
