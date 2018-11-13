@@ -1,0 +1,11 @@
+apiVersion: compute.google.golang.org/v1
+kind: Subnetwork
+metadata:
+  name: example
+spec:
+  name: example
+  description: example subnet for operator
+  gatewayAddress: 192.168.20.1
+  ipCidrRange: 192.168.20.0/22
+  network: projects/pgtm-pczarkowski/global/networks/default
+  region: us-central1

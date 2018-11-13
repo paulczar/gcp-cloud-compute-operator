@@ -3,16 +3,19 @@ package subnetwork
 import (
 	"context"
 	"log"
+	"time"
 
+	gceCompute "google.golang.org/api/compute/v1"
+
+	"github.com/mitchellh/mapstructure"
 	computev1 "github.com/paulczar/gcp-cloud-compute-operator/pkg/apis/compute/v1"
+	"github.com/paulczar/gcp-cloud-compute-operator/pkg/gce"
+	"github.com/paulczar/gcp-cloud-compute-operator/pkg/utils"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -32,7 +35,19 @@ func Add(mgr manager.Manager) error {
 
 // newReconciler returns a new reconcile.Reconciler
 func newReconciler(mgr manager.Manager) reconcile.Reconciler {
-	return &ReconcileSubnetwork{client: mgr.GetClient(), scheme: mgr.GetScheme()}
+	gceNew, err := gce.New("")
+	if err != nil {
+		panic(err)
+	}
+	return &ReconcileSubnetwork{
+		client: mgr.GetClient(),
+		scheme: mgr.GetScheme(),
+		gce:    gceNew,
+		reconcileResult: reconcile.Result{
+			RequeueAfter: time.Duration(5 * time.Second),
+		},
+		k8sObject: &computev1.Subnetwork{},
+	}
 }
 
 // add adds a new Controller to mgr with r as the reconcile.Reconciler
@@ -68,8 +83,13 @@ var _ reconcile.Reconciler = &ReconcileSubnetwork{}
 type ReconcileSubnetwork struct {
 	// This client, initialized using mgr.Client() above, is a split client
 	// that reads objects from the cache and writes to the apiserver
-	client client.Client
-	scheme *runtime.Scheme
+	client          client.Client
+	scheme          *runtime.Scheme
+	gce             *gce.Client
+	reconcileResult reconcile.Result
+	annotations     map[string]string
+	spec            *gceCompute.Subnetwork
+	k8sObject       *computev1.Subnetwork
 }
 
 // Reconcile reads that state of the cluster for a Subnetwork object and makes changes based on the state read
@@ -80,70 +100,119 @@ type ReconcileSubnetwork struct {
 // The Controller will requeue the Request to be processed again if the returned error is non-nil or
 // Result.Requeue is true, otherwise upon completion it will remove the work from the queue.
 func (r *ReconcileSubnetwork) Reconcile(request reconcile.Request) (reconcile.Result, error) {
-	log.Printf("Reconciling Subnetwork %s/%s\n", request.Namespace, request.Name)
-
-	// Fetch the Subnetwork instance
-	instance := &computev1.Subnetwork{}
-	err := r.client.Get(context.TODO(), request.NamespacedName, instance)
+	log.Printf("Reconciling Address %s/%s\n", request.Namespace, request.Name)
+	var kind = r.k8sObject.TypeMeta.Kind
+	var finalizer = utils.Finalizer
+	// Fetch the Address r.k8sObject
+	err := r.client.Get(context.TODO(), request.NamespacedName, r.k8sObject)
 	if err != nil {
 		if errors.IsNotFound(err) {
-			// Request object not found, could have been deleted after reconcile request.
+			log.Printf("Request object not found, could have been deleted after reconcile request.")
 			// Owned objects are automatically garbage collected. For additional cleanup logic use finalizers.
 			// Return and don't requeue
 			return reconcile.Result{}, nil
 		}
-		// Error reading the object - requeue the request.
-		return reconcile.Result{}, err
+		log.Printf("Error reading the object - requeue the request %s.", err.Error())
+		return r.reconcileResult, err
 	}
 
-	// Define a new Pod object
-	pod := newPodForCR(instance)
-
-	// Set Subnetwork instance as the owner and controller
-	if err := controllerutil.SetControllerReference(instance, pod, r.scheme); err != nil {
-		return reconcile.Result{}, err
+	// Define a new instance object
+	err = mapstructure.Decode(r.k8sObject.Spec, &r.spec)
+	if err != nil {
+		panic(err)
 	}
 
-	// Check if this Pod already exists
-	found := &corev1.Pod{}
-	err = r.client.Get(context.TODO(), types.NamespacedName{Name: pod.Name, Namespace: pod.Namespace}, found)
-	if err != nil && errors.IsNotFound(err) {
-		log.Printf("Creating a new Pod %s/%s\n", pod.Namespace, pod.Name)
-		err = r.client.Create(context.TODO(), pod)
+	// fetch annotations
+	r.annotations = r.k8sObject.GetAnnotations()
+
+	// update requeue duration based on annotation
+	duration, err := time.ParseDuration(utils.GetAnnotation(r.annotations, utils.ReconcilePeriodAnnotation))
+	if err == nil {
+		r.reconcileResult.RequeueAfter = duration
+	}
+
+	// check if the resource is set to be deleted
+	// stolen from https://github.com/operator-framework/operator-sdk/blob/fc9b6b1277b644d152534b22614351aa3d1405ba/pkg/ansible/controller/reconcile.go
+	deleted := r.k8sObject.GetDeletionTimestamp() != nil
+	pendingFinalizers := r.k8sObject.GetFinalizers()
+	finalizerExists := len(pendingFinalizers) > 0
+	if !finalizerExists && !deleted && !utils.Contains(pendingFinalizers, finalizer) {
+		log.Printf("Adding finalizer %s to resource", finalizer)
+		finalizers := append(pendingFinalizers, finalizer)
+		r.k8sObject.SetFinalizers(finalizers)
+		err := r.client.Update(context.TODO(), r.k8sObject)
 		if err != nil {
-			return reconcile.Result{}, err
+			return r.reconcileResult, err
 		}
-
-		// Pod created successfully - don't requeue
-		return reconcile.Result{}, nil
-	} else if err != nil {
-		return reconcile.Result{}, err
 	}
 
-	// Pod already exists - don't requeue
-	log.Printf("Skip reconcile: Pod %s/%s already exists", found.Namespace, found.Name)
+	// fetch the corresponding object from GCE
+	gceObject, err := r.read()
+	if err != nil {
+		return r.reconcileResult, err
+	}
+	// if it doesn't existin in gcp and is set to be deleted,
+	// then we can strip out the finalizer to let k8s actually delete it.
+	if gceObject == nil && deleted && finalizerExists {
+		log.Printf("reconcile: remove finalizer %s from %s/%s", finalizer, r.k8sObject.Namespace, r.k8sObject.Name)
+		finalizers := []string{}
+		for _, pendingFinalizer := range pendingFinalizers {
+			if pendingFinalizer != finalizer {
+				finalizers = append(finalizers, pendingFinalizer)
+			}
+		}
+		r.k8sObject.SetFinalizers(finalizers)
+		err := r.client.Update(context.TODO(), r.k8sObject)
+		if err != nil {
+			return r.reconcileResult, err
+		}
+		//todo fix this to stop requeuing
+		log.Printf("reconcile: Successfully deleted %s/%s, do not requeue", r.k8sObject.Namespace, r.k8sObject.Name)
+		return reconcile.Result{Requeue: false}, nil
+		//r.reconcileResult.RequeueAfter, _ = time.ParseDuration("10m")
+	}
+	// if not deleted and gceObject doesn't exist we can create one.
+	if !deleted && gceObject == nil {
+		log.Printf("reconcile: creating %s instance %s", kind, r.spec.Name)
+		err := r.create()
+		return r.reconcileResult, err
+	}
+
+	if gceObject != nil {
+		//spew.Dump(gceObject)
+		if deleted && finalizerExists {
+			log.Printf("reconcile: time to delete %s", r.spec.Name)
+			err := r.destroy()
+			if err != nil {
+				r.reconcileResult.RequeueAfter, _ = time.ParseDuration("5s")
+				return r.reconcileResult, err
+			}
+			r.reconcileResult.RequeueAfter, _ = time.ParseDuration("5s")
+			return r.reconcileResult, err
+		}
+		log.Printf("reconcile: resource %s already exists", r.spec.Name)
+		if r.k8sObject.Status.Status == "READY" {
+			log.Printf("reconcile: successfully created %s/%s, change requeue to 10mins so we don't stampede gcp.", r.k8sObject.Namespace, r.k8sObject.Name)
+			r.reconcileResult.RequeueAfter, _ = time.ParseDuration("10m")
+			return r.reconcileResult, nil
+		}
+		if r.k8sObject.Status.Status == "FAILED" {
+			return reconcile.Result{}, nil
+		}
+		// update our k8s resource to include status from resource
+		if gceObject.SelfLink != "" {
+			r.k8sObject.Status.Status = "READY"
+		}
+		r.k8sObject.Status.SelfLink = gceObject.SelfLink
+		r.k8sObject.Status.CreationTimestamp = gceObject.CreationTimestamp
+		r.k8sObject.Status.Id = gceObject.Id
+		log.Printf("reconcile: update k8s status for %s/%s", r.k8sObject.Namespace, r.k8sObject.Name)
+		err = r.client.Update(context.TODO(), r.k8sObject)
+		if err != nil {
+			return r.reconcileResult, err
+		}
+		return r.reconcileResult, nil
+
+	}
 	return reconcile.Result{}, nil
-}
-
-// newPodForCR returns a busybox pod with the same name/namespace as the cr
-func newPodForCR(cr *computev1.Subnetwork) *corev1.Pod {
-	labels := map[string]string{
-		"app": cr.Name,
-	}
-	return &corev1.Pod{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      cr.Name + "-pod",
-			Namespace: cr.Namespace,
-			Labels:    labels,
-		},
-		Spec: corev1.PodSpec{
-			Containers: []corev1.Container{
-				{
-					Name:    "busybox",
-					Image:   "busybox",
-					Command: []string{"sleep", "3600"},
-				},
-			},
-		},
-	}
 }

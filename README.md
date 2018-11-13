@@ -12,6 +12,7 @@ Currently supports creating and destroying the following GCP Services:
 * Images
 * Firewalls
 * Networks
+* Subnetworks
 
 ## Progress
 
@@ -19,13 +20,12 @@ Currently supports creating and destroying the following GCP Services:
 
 * Instances
 * Forwarding Rules
-* Subnetworks
 * Target Pools
 
 ## Add new gcp compute service
 
 ```
-API=compute.google.golang.org/v1 KIND=Network
+API=compute.google.golang.org/v1 KIND=Subnetwork
 operator-sdk add api --api-version=$API --kind=$KIND
 operator-sdk add controller --api-version=$API --kind=$KIND
 ```
