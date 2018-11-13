@@ -1,0 +1,7 @@
+apiVersion: addresses.compute.gce/v1alpha1
+kind: Address
+metadata:
+  name: example
+spec:
+  region: us-central1
+  name: example

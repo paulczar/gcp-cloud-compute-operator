@@ -1,0 +1,13 @@
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  name: addresses.addresses.compute.gce
+spec:
+  group: addresses.compute.gce
+  names:
+    kind: Address
+    listKind: AddressList
+    plural: addresses
+    singular: address
+  scope: Namespaced
+  version: v1alpha1
