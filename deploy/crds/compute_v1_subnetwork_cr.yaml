@@ -1,0 +1,7 @@
+apiVersion: compute.google.golang.org/v1
+kind: Subnetwork
+metadata:
+  name: example-subnetwork
+spec:
+  # Add fields here
+  size: 3

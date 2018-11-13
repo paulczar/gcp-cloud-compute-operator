@@ -6,17 +6,21 @@ The goal of the Operator is to provide a bare minimum set of Kubernetes CRDs to 
 
 Currently supports creating and destroying the following GCP Services:
 
+## Done
+
 * Addresses
+* Images
+* Firewalls
+* Networks
+
+## Progress
 
 ## TODO
 
 * Instances
 * Forwarding Rules
-* Networks
 * Subnetworks
 * Target Pools
-* Firewalls
-* Images
 
 ## Add new gcp compute service
 

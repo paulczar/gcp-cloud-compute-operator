@@ -55,5 +55,8 @@ rules:
   resources:
   - '*'
   - images
+  - firewalls
+  - networks
+  - subnetworks
   verbs:
   - '*'
