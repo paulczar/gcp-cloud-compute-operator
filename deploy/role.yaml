@@ -50,3 +50,10 @@ rules:
   - '*'
   verbs:
   - '*'
+- apiGroups:
+  - compute.google.golang.org
+  resources:
+  - '*'
+  - images
+  verbs:
+  - '*'

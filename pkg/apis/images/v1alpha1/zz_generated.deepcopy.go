@@ -29,18 +29,6 @@ func (in *Image) DeepCopyInto(out *Image) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
 	in.ObjectMeta.DeepCopyInto(&out.ObjectMeta)
-	if in.Spec != nil {
-		in, out := &in.Spec, &out.Spec
-		*out = make(map[string]interface{}, len(*in))
-		for key, val := range *in {
-			if val == nil {
-				(*out)[key] = nil
-			} else {
-				(*out)[key] = val
-			}
-		}
-	}
-
 	out.Status = in.Status
 	return
 }

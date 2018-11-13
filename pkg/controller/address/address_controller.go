@@ -6,10 +6,10 @@ import (
 	"time"
 
 	"github.com/mitchellh/mapstructure"
-	addressesv1alpha1 "github.com/paulczar/gcp-cloud-compute-operator/pkg/apis/addresses/v1alpha1"
+	computev1 "github.com/paulczar/gcp-cloud-compute-operator/pkg/apis/compute/v1"
 	"github.com/paulczar/gcp-cloud-compute-operator/pkg/gce"
 	"github.com/paulczar/gcp-cloud-compute-operator/pkg/utils"
-	compute "google.golang.org/api/compute/v1"
+	gceCompute "google.golang.org/api/compute/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -57,7 +57,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	}
 
 	// Watch for changes to primary resource Address
-	err = c.Watch(&source.Kind{Type: &addressesv1alpha1.Address{}}, &handler.EnqueueRequestForObject{})
+	err = c.Watch(&source.Kind{Type: &computev1.Address{}}, &handler.EnqueueRequestForObject{})
 	if err != nil {
 		return err
 	}
@@ -66,7 +66,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	// Watch for changes to secondary resource Pods and requeue the owner Address
 	err = c.Watch(&source.Kind{Type: &corev1.Pod{}}, &handler.EnqueueRequestForOwner{
 		IsController: true,
-		OwnerType:    &addressesv1alpha1.Address{},
+		OwnerType:    &computev1.Address{},
 	})
 	if err != nil {
 		return err
@@ -86,7 +86,7 @@ type ReconcileAddress struct {
 	gce             *gce.Client
 	reconcileResult reconcile.Result
 	annotations     map[string]string
-	spec            *compute.Address
+	spec            *gceCompute.Address
 }
 
 // Reconcile reads that state of the cluster for a Address object and makes changes based on the state read
@@ -95,7 +95,7 @@ func (r *ReconcileAddress) Reconcile(request reconcile.Request) (reconcile.Resul
 	log.Printf("Reconciling Address %s/%s\n", request.Namespace, request.Name)
 
 	// Fetch the Address r.k8sObject
-	k8sObject := &addressesv1alpha1.Address{}
+	k8sObject := &computev1.Address{}
 	err := r.client.Get(context.TODO(), request.NamespacedName, k8sObject)
 	if err != nil {
 		if errors.IsNotFound(err) {
@@ -183,7 +183,7 @@ func (r *ReconcileAddress) Reconcile(request reconcile.Request) (reconcile.Resul
 			return r.reconcileResult, err
 		}
 		log.Printf("reconcile: database instance %s/%s already exists", r.spec.Region, r.spec.Name)
-		if k8sObject.Status.Status == "RESERVED" {
+		if k8sObject.Status.Status == "RESERVED" && k8sObject.Status.IPAddress != "" {
 			log.Printf("reconcile: successfully created %s/%s, change requeue to 10mins so we don't stampede gcp.", k8sObject.Namespace, k8sObject.Name)
 			r.reconcileResult.RequeueAfter, _ = time.ParseDuration("10m")
 			return r.reconcileResult, nil

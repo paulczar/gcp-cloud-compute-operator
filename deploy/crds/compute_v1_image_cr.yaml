@@ -1,0 +1,7 @@
+apiVersion: compute.google.golang.org/v1
+kind: Image
+metadata:
+  name: example-image
+spec:
+  # Add fields here
+  size: 3

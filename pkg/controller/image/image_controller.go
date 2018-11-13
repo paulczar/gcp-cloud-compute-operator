@@ -6,10 +6,10 @@ import (
 	"time"
 
 	"github.com/mitchellh/mapstructure"
-	imagesv1alpha1 "github.com/paulczar/gcp-cloud-compute-operator/pkg/apis/images/v1alpha1"
+	computev1 "github.com/paulczar/gcp-cloud-compute-operator/pkg/apis/compute/v1"
 	"github.com/paulczar/gcp-cloud-compute-operator/pkg/gce"
 	"github.com/paulczar/gcp-cloud-compute-operator/pkg/utils"
-	compute "google.golang.org/api/compute/v1"
+	gceCompute "google.golang.org/api/compute/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -45,7 +45,7 @@ func newReconciler(mgr manager.Manager) reconcile.Reconciler {
 		reconcileResult: reconcile.Result{
 			RequeueAfter: time.Duration(5 * time.Second),
 		},
-		k8sObject: &imagesv1alpha1.Image{},
+		k8sObject: &computev1.Image{},
 	}
 }
 
@@ -58,7 +58,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	}
 
 	// Watch for changes to primary resource Image
-	err = c.Watch(&source.Kind{Type: &imagesv1alpha1.Image{}}, &handler.EnqueueRequestForObject{})
+	err = c.Watch(&source.Kind{Type: &computev1.Image{}}, &handler.EnqueueRequestForObject{})
 	if err != nil {
 		return err
 	}
@@ -67,7 +67,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	// Watch for changes to secondary resource Pods and requeue the owner Image
 	err = c.Watch(&source.Kind{Type: &corev1.Pod{}}, &handler.EnqueueRequestForOwner{
 		IsController: true,
-		OwnerType:    &imagesv1alpha1.Image{},
+		OwnerType:    &computev1.Image{},
 	})
 	if err != nil {
 		return err
@@ -87,8 +87,8 @@ type ReconcileImage struct {
 	gce             *gce.Client
 	reconcileResult reconcile.Result
 	annotations     map[string]string
-	spec            *compute.Image
-	k8sObject       *imagesv1alpha1.Image
+	spec            *gceCompute.Image
+	k8sObject       *computev1.Image
 }
 
 // Reconcile reads that state of the cluster for a Image object and makes changes based on the state read
