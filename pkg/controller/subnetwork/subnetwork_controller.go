@@ -5,12 +5,11 @@ import (
 	"log"
 	"time"
 
-	gceCompute "google.golang.org/api/compute/v1"
-
 	"github.com/mitchellh/mapstructure"
 	computev1 "github.com/paulczar/gcp-cloud-compute-operator/pkg/apis/compute/v1"
 	"github.com/paulczar/gcp-cloud-compute-operator/pkg/gce"
 	"github.com/paulczar/gcp-cloud-compute-operator/pkg/utils"
+	gceCompute "google.golang.org/api/compute/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -100,9 +99,8 @@ type ReconcileSubnetwork struct {
 // The Controller will requeue the Request to be processed again if the returned error is non-nil or
 // Result.Requeue is true, otherwise upon completion it will remove the work from the queue.
 func (r *ReconcileSubnetwork) Reconcile(request reconcile.Request) (reconcile.Result, error) {
-	log.Printf("Reconciling Address %s/%s\n", request.Namespace, request.Name)
-	var kind = r.k8sObject.TypeMeta.Kind
 	var finalizer = utils.Finalizer
+	log.Printf("Reconciling Subnetwork %s/%s\n", request.Namespace, request.Name)
 	// Fetch the Address r.k8sObject
 	err := r.client.Get(context.TODO(), request.NamespacedName, r.k8sObject)
 	if err != nil {
@@ -115,6 +113,7 @@ func (r *ReconcileSubnetwork) Reconcile(request reconcile.Request) (reconcile.Re
 		log.Printf("Error reading the object - requeue the request %s.", err.Error())
 		return r.reconcileResult, err
 	}
+	var kind = r.k8sObject.TypeMeta.Kind
 
 	// Define a new instance object
 	err = mapstructure.Decode(r.k8sObject.Spec, &r.spec)

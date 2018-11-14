@@ -58,5 +58,6 @@ rules:
   - firewalls
   - networks
   - subnetworks
+  - forwardingrules
   verbs:
   - '*'

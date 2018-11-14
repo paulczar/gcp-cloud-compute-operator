@@ -99,10 +99,9 @@ type ReconcileFirewall struct {
 // The Controller will requeue the Request to be processed again if the returned error is non-nil or
 // Result.Requeue is true, otherwise upon completion it will remove the work from the queue.
 func (r *ReconcileFirewall) Reconcile(request reconcile.Request) (reconcile.Result, error) {
-	log.Printf("Reconciling Address %s/%s\n", request.Namespace, request.Name)
+	log.Printf("Reconciling Firewall %s/%s\n", request.Namespace, request.Name)
 
 	var finalizer = utils.Finalizer
-	var kind = r.k8sObject.TypeMeta.Kind
 	// Fetch the Address r.k8sObject
 	err := r.client.Get(context.TODO(), request.NamespacedName, r.k8sObject)
 	if err != nil {
@@ -115,6 +114,7 @@ func (r *ReconcileFirewall) Reconcile(request reconcile.Request) (reconcile.Resu
 		log.Printf("Error reading the object - requeue the request %s.", err.Error())
 		return r.reconcileResult, err
 	}
+	var kind = r.k8sObject.TypeMeta.Kind
 
 	// Define a new instance object
 	err = mapstructure.Decode(r.k8sObject.Spec, &r.spec)

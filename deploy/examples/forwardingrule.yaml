@@ -1,0 +1,12 @@
+apiVersion: compute.google.golang.org/v1
+kind: ForwardingRule
+metadata:
+  name: example
+spec:
+  name: example
+  description: example forwardingrule for operator
+  IPAddress: regions/us-central1/addresses/example
+  IPProtocol: TCP
+  portRange: "9021"
+  region: us-central1
+  target: regions/us-central1/targetPools/example

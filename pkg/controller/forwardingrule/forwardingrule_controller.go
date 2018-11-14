@@ -1,4 +1,4 @@
-package image
+package forwardingrule
 
 import (
 	"context"
@@ -26,7 +26,7 @@ import (
 * business logic.  Delete these comments after modifying this file.*
  */
 
-// Add creates a new Image Controller and adds it to the Manager. The Manager will set fields on the Controller
+// Add creates a new ForwardingRule Controller and adds it to the Manager. The Manager will set fields on the Controller
 // and Start it when the Manager is Started.
 func Add(mgr manager.Manager) error {
 	return add(mgr, newReconciler(mgr))
@@ -38,36 +38,36 @@ func newReconciler(mgr manager.Manager) reconcile.Reconciler {
 	if err != nil {
 		panic(err)
 	}
-	return &ReconcileImage{
+	return &ReconcileForwardingRule{
 		client: mgr.GetClient(),
 		scheme: mgr.GetScheme(),
 		gce:    gceNew,
 		reconcileResult: reconcile.Result{
 			RequeueAfter: time.Duration(5 * time.Second),
 		},
-		k8sObject: &computev1.Image{},
+		k8sObject: &computev1.ForwardingRule{},
 	}
 }
 
 // add adds a new Controller to mgr with r as the reconcile.Reconciler
 func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	// Create a new controller
-	c, err := controller.New("image-controller", mgr, controller.Options{Reconciler: r})
+	c, err := controller.New("forwardingrule-controller", mgr, controller.Options{Reconciler: r})
 	if err != nil {
 		return err
 	}
 
-	// Watch for changes to primary resource Image
-	err = c.Watch(&source.Kind{Type: &computev1.Image{}}, &handler.EnqueueRequestForObject{})
+	// Watch for changes to primary resource ForwardingRule
+	err = c.Watch(&source.Kind{Type: &computev1.ForwardingRule{}}, &handler.EnqueueRequestForObject{})
 	if err != nil {
 		return err
 	}
 
 	// TODO(user): Modify this to be the types you create that are owned by the primary resource
-	// Watch for changes to secondary resource Pods and requeue the owner Image
+	// Watch for changes to secondary resource Pods and requeue the owner ForwardingRule
 	err = c.Watch(&source.Kind{Type: &corev1.Pod{}}, &handler.EnqueueRequestForOwner{
 		IsController: true,
-		OwnerType:    &computev1.Image{},
+		OwnerType:    &computev1.ForwardingRule{},
 	})
 	if err != nil {
 		return err
@@ -76,10 +76,10 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	return nil
 }
 
-var _ reconcile.Reconciler = &ReconcileImage{}
+var _ reconcile.Reconciler = &ReconcileForwardingRule{}
 
-// ReconcileImage reconciles a Image object
-type ReconcileImage struct {
+// ReconcileForwardingRule reconciles a ForwardingRule object
+type ReconcileForwardingRule struct {
 	// This client, initialized using mgr.Client() above, is a split client
 	// that reads objects from the cache and writes to the apiserver
 	client          client.Client
@@ -87,16 +87,20 @@ type ReconcileImage struct {
 	gce             *gce.Client
 	reconcileResult reconcile.Result
 	annotations     map[string]string
-	spec            *gceCompute.Image
-	k8sObject       *computev1.Image
+	spec            *gceCompute.ForwardingRule
+	k8sObject       *computev1.ForwardingRule
 }
 
-// Reconcile reads that state of the cluster for a Image object and makes changes based on the state read
-// and what is in the Image.Spec
-func (r *ReconcileImage) Reconcile(request reconcile.Request) (reconcile.Result, error) {
-	log.Printf("Reconciling Image %s/%s\n", request.Namespace, request.Name)
-
+// Reconcile reads that state of the cluster for a ForwardingRule object and makes changes based on the state read
+// and what is in the ForwardingRule.Spec
+// TODO(user): Modify this Reconcile function to implement your Controller logic.  This example creates
+// a Pod as an example
+// Note:
+// The Controller will requeue the Request to be processed again if the returned error is non-nil or
+// Result.Requeue is true, otherwise upon completion it will remove the work from the queue.
+func (r *ReconcileForwardingRule) Reconcile(request reconcile.Request) (reconcile.Result, error) {
 	var finalizer = utils.Finalizer
+	log.Printf("Reconciling forwardingrule %s/%s\n", request.Namespace, request.Name)
 	// Fetch the Address r.k8sObject
 	err := r.client.Get(context.TODO(), request.NamespacedName, r.k8sObject)
 	if err != nil {
@@ -109,6 +113,7 @@ func (r *ReconcileImage) Reconcile(request reconcile.Request) (reconcile.Result,
 		log.Printf("Error reading the object - requeue the request %s.", err.Error())
 		return r.reconcileResult, err
 	}
+	var kind = r.k8sObject.TypeMeta.Kind
 
 	// Define a new instance object
 	err = mapstructure.Decode(r.k8sObject.Spec, &r.spec)
@@ -167,7 +172,7 @@ func (r *ReconcileImage) Reconcile(request reconcile.Request) (reconcile.Result,
 	}
 	// if not deleted and gceObject doesn't exist we can create one.
 	if !deleted && gceObject == nil {
-		log.Printf("reconcile: creating image instance %s", r.spec.Name)
+		log.Printf("reconcile: creating %s instance %s", kind, r.spec.Name)
 		err := r.create()
 		return r.reconcileResult, err
 	}
@@ -193,9 +198,13 @@ func (r *ReconcileImage) Reconcile(request reconcile.Request) (reconcile.Result,
 		if r.k8sObject.Status.Status == "FAILED" {
 			return reconcile.Result{}, nil
 		}
-		// update our k8s resource to include status from image
-		r.k8sObject.Status.Status = gceObject.Status
+		// update our k8s resource to include status from resource
+		if gceObject.SelfLink != "" {
+			r.k8sObject.Status.Status = "READY"
+		}
 		r.k8sObject.Status.SelfLink = gceObject.SelfLink
+		r.k8sObject.Status.CreationTimestamp = gceObject.CreationTimestamp
+		r.k8sObject.Status.Id = gceObject.Id
 		log.Printf("reconcile: update k8s status for %s/%s", r.k8sObject.Namespace, r.k8sObject.Name)
 		err = r.client.Update(context.TODO(), r.k8sObject)
 		if err != nil {

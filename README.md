@@ -13,19 +13,19 @@ Currently supports creating and destroying the following GCP Services:
 * Firewalls
 * Networks
 * Subnetworks
+* Forwarding Rules
 
 ## Progress
 
 ## TODO
 
 * Instances
-* Forwarding Rules
 * Target Pools
 
 ## Add new gcp compute service
 
 ```
-API=compute.google.golang.org/v1 KIND=Subnetwork
+API=compute.google.golang.org/v1 KIND=TargetPool
 operator-sdk add api --api-version=$API --kind=$KIND
 operator-sdk add controller --api-version=$API --kind=$KIND
 ```
