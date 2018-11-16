@@ -131,6 +131,14 @@ func (r *ReconcileFirewall) Reconcile(request reconcile.Request) (reconcile.Resu
 		r.reconcileResult.RequeueAfter = duration
 	}
 
+	// log into GCE using project
+	if utils.GetAnnotation(r.annotations, utils.ProjectIDAnnotation) != "" {
+		r.gce, err = gce.New(utils.ProjectIDAnnotation)
+		if err != nil {
+			panic(err)
+		}
+	}
+
 	// check if the resource is set to be deleted
 	// stolen from https://github.com/operator-framework/operator-sdk/blob/fc9b6b1277b644d152534b22614351aa3d1405ba/pkg/ansible/controller/reconcile.go
 	deleted := r.k8sObject.GetDeletionTimestamp() != nil

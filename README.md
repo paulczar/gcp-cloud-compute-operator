@@ -31,7 +31,7 @@ You can set the following Annotations:
 
 | Annotation | Description |
 | ---------- | ----------- |
-| `cloud.google.com/project-id` | Sets the GCP Project ID if different to that used in operator service account |
+| `compute.gce/project-id` | Sets the GCP Project ID if different to that used in operator service account |
 
 
 ## Example Usage
@@ -61,10 +61,22 @@ clusterrolebinding.rbac.authorization.k8s.io/cluster-admin-binding created
 Deploy the GCP Operator:
 
 ```bash
-kubectl -n gcp-operator apply -f deploy/rbac.yaml
-kubectl -n gcp-operator apply -f deploy/sa.yaml
-kubectl -n gcp-operator apply -f deploy/crd.yaml
+kubectl -n gcp-operator apply -f deploy/service_account.yaml
+kubectl -n gcp-operator apply -f deploy/role.yaml
+kubectl -n gcp-operator apply -f deploy/role_binding.yaml
 kubectl -n gcp-operator apply -f deploy/operator.yaml
+```
+
+Deploy the CRDs:
+```bash
+kubectl apply -f deploy/crds/compute_v1_address_crd.yaml
+kubectl apply -f deploy/crds/compute_v1_firewall_crd.yaml
+kubectl apply -f deploy/crds/compute_v1_forwardingrule_crd.yaml
+kubectl apply -f deploy/crds/compute_v1_image_crd.yaml
+kubectl apply -f deploy/crds/compute_v1_instance_crd.yaml
+kubectl apply -f deploy/crds/compute_v1_network_crd.yaml
+kubectl apply -f deploy/crds/compute_v1_subnetwork_crd.yaml
+kubectl apply -f deploy/crds/compute_v1_targetpool_crd.yaml
 ```
 
 ### Create GCP Instance

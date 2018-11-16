@@ -5,6 +5,8 @@ const (
 	Finalizer = "finalizer.compute.gce"
 	// ReconcilePeriodAnnotation is the annotation to accept alternative reconcile-period
 	ReconcilePeriodAnnotation = "compute.gce/reconcile-period"
+	// ProjectIDAnnotation is the annotation for accept an alternative Project ID
+	ProjectIDAnnotation = "compute.gce/project-id"
 )
 
 // GetAnnotation returns a thing
