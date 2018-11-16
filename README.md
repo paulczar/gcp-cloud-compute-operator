@@ -79,30 +79,14 @@ kubectl apply -f deploy/crds/compute_v1_subnetwork_crd.yaml
 kubectl apply -f deploy/crds/compute_v1_targetpool_crd.yaml
 ```
 
-### Create GCP Instance
-
-Once the GCP Operator is deployed you can create a GCP instance:
-
-```bash
-kubectl -n gcp-operator apply -f deploy/cr-instance.yaml
-```
-
-After a few minutes check to see if the new instance exists:
-
-```bash
-gcloud compute instances list
-NAME                                     ZONE           MACHINE_TYPE               PREEMPTIBLE  INTERNAL_IP  EXTERNAL_IP     STATUS
-test                                     us-central1-a  custom (2 vCPU, 4.00 GiB)               10.128.0.2                   RUNNING
-```
-
 ### Create GCP Address
 
-Edit `deploy/cr-address.yaml` replacing the project ID placeholders with your GCP project.
+Edit `deploy/examples/address.yaml` replacing the project ID placeholders with your GCP project.
 
 Once the GCP Operator is deployed you can create a GCP instance:
 
 ```bash
-kubectl -n gcp-operator apply -f deploy/cr-address.yaml
+kubectl -n gcp-operator apply -f deploy/examples/address.yaml
 ```
 
 After a few minutes check to see if the new instance exists:
@@ -114,8 +98,29 @@ example                us-central1  35.226.61.203    RESERVED
 
 ```
 
+### Create GCP Instance
+
+Once the GCP Operator is deployed you can create a GCP instance:
+
+> Note: you'll need to edit this file first
+
+```bash
+kubectl -n gcp-operator apply -f deploy/examples/instance.yaml
+```
+
+After a few minutes check to see if the new instance exists:
+
+```bash
+gcloud compute instances list
+NAME                                     ZONE           MACHINE_TYPE               PREEMPTIBLE  INTERNAL_IP  EXTERNAL_IP     STATUS
+test                                     us-central1-a  custom (2 vCPU, 4.00 GiB)               10.128.0.2                   RUNNING
+```
+
 Cleanup:
 
 ```
 kubectl delete -f deploy
+kubectl delete -f deploy/crds
+kubectl delete -f deploy/examples
+
 ```
