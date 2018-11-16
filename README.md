@@ -6,26 +6,21 @@ The goal of the Operator is to provide a bare minimum set of Kubernetes CRDs to 
 
 Currently supports creating and destroying the following GCP Services:
 
-## Done
-
 * Addresses
 * Images
 * Firewalls
 * Networks
 * Subnetworks
 * Forwarding Rules
-
-## Progress
-
-## TODO
-
-* Instances
 * Target Pools
+* Instances
+
+
 
 ## Add new gcp compute service
 
 ```
-API=compute.google.golang.org/v1 KIND=TargetPool
+API=compute.google.golang.org/v1 KIND=Instance
 operator-sdk add api --api-version=$API --kind=$KIND
 operator-sdk add controller --api-version=$API --kind=$KIND
 ```

@@ -59,5 +59,7 @@ rules:
   - networks
   - subnetworks
   - forwardingrules
+  - targetpools
+  - instances
   verbs:
   - '*'

@@ -1,0 +1,27 @@
+apiVersion: compute.google.golang.org/v1
+kind: Instance
+metadata:
+  name: example
+spec:
+  zone: us-central1-a
+  name: example-instance
+  description: example instance for gcp operator
+  machineType: https://www.googleapis.com/compute/v1/projects/<PROJECT ID>/zones/us-central1-a/machineTypes/custom-2-4096
+  tags:
+    items: ["allow-ssh", "allow-https"]
+  disks:
+    - type: PERSISTENT
+      boot: true
+      autoDelete: true
+      initializeParams:
+        diskName: example-root
+        diskType: zones/us-central1-a/diskTypes/pd-ssd
+        diskSizeGb: 150
+        # currently needs to be full URL
+        sourceImage: https://www.googleapis.com/compute/v1/projects/ubuntu-os-cloud/global/images/ubuntu-1804-bionic-v20181114
+  networkInterfaces:
+      # can be full URL or just the network name, if latter will expand it out using project id assuming a global network.
+      # - network: https://www.googleapis.com/compute/v1/projects/debian-cloud/global/networks/default
+    - subnetwork: https://www.googleapis.com/compute/v1/projects/<PROJECT ID>/regions/us-central1/subnetworks/example
+      accessConfigs:
+        - name: external-nat

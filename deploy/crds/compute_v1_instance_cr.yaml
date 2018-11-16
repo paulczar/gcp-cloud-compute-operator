@@ -1,0 +1,7 @@
+apiVersion: compute.google.golang.org/v1
+kind: Instance
+metadata:
+  name: example-instance
+spec:
+  # Add fields here
+  size: 3

@@ -8,6 +8,6 @@ spec:
   allowed:
     - IPProtocol: tcp
       ports: ["80"]
-  network: https://www.googleapis.com/compute/v1/projects/pgtm-pczarkowski/global/networks/default
+  network: https://www.googleapis.com/compute/v1/projects/<PROJECT ID>/global/networks/default
   sourceRanges: ["0.0.0.0/0"]
   targetTags: ["allow-http"]

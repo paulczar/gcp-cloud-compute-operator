@@ -7,5 +7,5 @@ spec:
   description: example subnet for operator
   gatewayAddress: 192.168.20.1
   ipCidrRange: 192.168.20.0/22
-  network: projects/pgtm-pczarkowski/global/networks/default
+  network: projects/<PROJECT ID>/global/networks/default
   region: us-central1

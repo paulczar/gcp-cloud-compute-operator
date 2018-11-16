@@ -1,0 +1,9 @@
+apiVersion: compute.google.golang.org/v1
+kind: TargetPool
+metadata:
+  name: example
+spec:
+  name: example
+  description: example target pool for k8s operator
+  region: us-central1
+  instances: []
