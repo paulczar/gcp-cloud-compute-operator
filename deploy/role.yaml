@@ -63,3 +63,9 @@ rules:
   - instances
   verbs:
   - '*'
+- apiGroups:
+  - iam.google.golang.org
+  resources:
+  - '*'
+  verbs:
+  - '*'
