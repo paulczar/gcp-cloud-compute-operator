@@ -98,7 +98,7 @@ type ReconcileServiceAccount struct {
 // The Controller will requeue the Request to be processed again if the returned error is non-nil or
 // Result.Requeue is true, otherwise upon completion it will remove the work from the queue.
 func (r *ReconcileServiceAccount) Reconcile(request reconcile.Request) (reconcile.Result, error) {
-	log.Printf("Reconciling Image %s/%s\n", request.Namespace, request.Name)
+	log.Printf("Reconciling IAM Service Account %s/%s\n", request.Namespace, request.Name)
 
 	var finalizer = utils.Finalizer
 	// Fetch the Address r.k8sObject
@@ -179,7 +179,7 @@ func (r *ReconcileServiceAccount) Reconcile(request reconcile.Request) (reconcil
 	}
 	// if not deleted and gceObject doesn't exist we can create one.
 	if !deleted && gceObject == nil {
-		log.Printf("reconcile: creating image instance %s", r.spec.Name)
+		log.Printf("reconcile: creating IAM Service Account instance %s", r.spec.Name)
 		err := r.create()
 		return r.reconcileResult, err
 	}
@@ -205,12 +205,14 @@ func (r *ReconcileServiceAccount) Reconcile(request reconcile.Request) (reconcil
 		if r.k8sObject.Status.Status == "FAILED" {
 			return reconcile.Result{}, nil
 		}
-		// update our k8s resource to include status from image
+		// update our k8s resource to include status from IAM Service Account
 		if gceObject.UniqueId != "" {
 			r.k8sObject.Status.Status = "READY"
 		}
 		r.k8sObject.Status.ProjectId = gceObject.ProjectId
 		r.k8sObject.Status.UniqueId = gceObject.UniqueId
+		r.k8sObject.Status.Email = gceObject.Email
+		r.k8sObject.Status.Name = gceObject.Name
 		log.Printf("reconcile: update k8s status for %s/%s", r.k8sObject.Namespace, r.k8sObject.Name)
 		err = r.client.Update(context.TODO(), r.k8sObject)
 		if err != nil {

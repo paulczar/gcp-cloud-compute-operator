@@ -20,7 +20,7 @@ Currently supports creating and destroying the following GCP Services:
 ## Add new gcp compute service
 
 ```
-API=compute.google.golang.org/v1 KIND=Instance
+API=compute.google.golang.org/v1 KIND=Image
 operator-sdk add api --api-version=$API --kind=$KIND
 operator-sdk add controller --api-version=$API --kind=$KIND
 ```

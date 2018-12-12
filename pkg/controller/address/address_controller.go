@@ -173,7 +173,7 @@ func (r *ReconcileAddress) Reconcile(request reconcile.Request) (reconcile.Resul
 	}
 	// if not deleted and gceObject doesn't exist we can create one.
 	if !deleted && gceObject == nil {
-		log.Printf("reconcile: creating database instance %s", r.spec.Name)
+		log.Printf("reconcile: creating address %s", r.spec.Name)
 		err := r.create()
 		return r.reconcileResult, err
 	}
@@ -190,13 +190,13 @@ func (r *ReconcileAddress) Reconcile(request reconcile.Request) (reconcile.Resul
 			r.reconcileResult.RequeueAfter, _ = time.ParseDuration("5s")
 			return r.reconcileResult, err
 		}
-		log.Printf("reconcile: database instance %s/%s already exists", r.spec.Region, r.spec.Name)
+		log.Printf("reconcile: address instance %s/%s already exists", r.spec.Region, r.spec.Name)
 		if k8sObject.Status.Status == "RESERVED" && k8sObject.Status.IPAddress != "" {
 			log.Printf("reconcile: successfully created %s/%s, change requeue to 10mins so we don't stampede gcp.", k8sObject.Namespace, k8sObject.Name)
 			r.reconcileResult.RequeueAfter, _ = time.ParseDuration("10m")
 			return r.reconcileResult, nil
 		}
-		// update our k8s resource to include status from database
+		// update our k8s resource to include status from address
 		k8sObject.Status.Status = gceObject.Status
 		k8sObject.Status.IPAddress = gceObject.Address
 		k8sObject.Status.SelfLink = gceObject.SelfLink

@@ -1,5 +1,9 @@
 package utils
 
+import (
+	"strings"
+)
+
 const (
 	// Finalizer is the string for the k8s finalizer
 	Finalizer = "finalizer.compute.gce"
@@ -25,4 +29,24 @@ func Contains(l []string, s string) bool {
 		}
 	}
 	return false
+}
+
+// ServiceAccountName takes the projectid and a name and returns
+// a valid Service Account URL
+func ServiceAccountName(projectID, name string) string {
+	if strings.Contains(name, "projectID/") {
+		return name
+	}
+	email := ServiceAccountEmail(projectID, name)
+	return strings.Join([]string{"projects", projectID, "serviceAccounts", email}, "/")
+
+}
+
+// ServiceAccountEmail takes the projectid and a name and returns
+// a valid service account email  address
+func ServiceAccountEmail(projectID, name string) string {
+	if strings.Contains(name, ".iam.gserviceaccount.com") {
+		return name
+	}
+	return name + "@" + projectID + ".iam.gserviceaccount.com"
 }

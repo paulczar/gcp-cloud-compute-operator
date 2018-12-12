@@ -39,11 +39,11 @@ func (r *ReconcileAddress) destroy() error {
 	_, err := r.gce.Service.Addresses.Delete(r.gce.ProjectID, r.spec.Region, r.spec.Name).Do()
 	if err != nil {
 		if googleapiError, ok := err.(*googleapi.Error); ok && googleapiError.Code != 404 {
-			log.Printf("reconcile error: something strange went deleting database instance %s - %s", r.spec.Name, err.Error())
+			log.Printf("reconcile error: something strange went deleting address instance %s - %s", r.spec.Name, err.Error())
 			return err
 		}
 		if googleapiError, ok := err.(*googleapi.Error); ok && googleapiError.Code == 404 {
-			log.Printf("reconcile: already deletd database instance %s - %s", r.spec.Name, err.Error())
+			log.Printf("reconcile: already deletd address instance %s - %s", r.spec.Name, err.Error())
 			return nil
 		}
 	}

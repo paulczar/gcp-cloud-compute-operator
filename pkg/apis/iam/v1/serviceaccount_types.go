@@ -13,6 +13,7 @@ type ServiceAccountStatus struct {
 	Oauth2ClientId string `json:"oauth2ClientId,omitempty"`
 	Email          string `json:"email,omitempty"`
 	Status         string `json:"status,omitempty"`
+	Name           string `json:"name,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

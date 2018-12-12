@@ -4,12 +4,14 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/paulczar/gcp-cloud-compute-operator/pkg/utils"
 	"google.golang.org/api/googleapi"
 	iam "google.golang.org/api/iam/v1"
 )
 
 func (r *ReconcileServiceAccount) read() (*iam.ServiceAccount, error) {
-	result, err := r.gce.Service.Projects.ServiceAccounts.Get(r.spec.Name).Do()
+	name := utils.ServiceAccountName(r.gce.ProjectID, r.spec.Name)
+	result, err := r.gce.Service.Projects.ServiceAccounts.Get(name).Do()
 	if err != nil {
 		if googleapiError, ok := err.(*googleapi.Error); ok && googleapiError.Code != 404 {
 			log.Printf("reconcile error: something strange went wrong with %s - %s", r.spec.Name, err.Error())
@@ -20,8 +22,15 @@ func (r *ReconcileServiceAccount) read() (*iam.ServiceAccount, error) {
 }
 
 func (r *ReconcileServiceAccount) create() error {
-	sar := iam.CreateServiceAccountRequest{ServiceAccount: r.spec}
-	_, err := r.gce.Service.Projects.ServiceAccounts.Create(r.spec.Name, &sar).Do()
+	accountID := r.spec.Name
+	project := "projects/" + r.gce.ProjectID
+	r.spec.Name = ""
+	sar := iam.CreateServiceAccountRequest{
+		AccountId:      accountID,
+		ServiceAccount: r.spec,
+	}
+	//spew.Dump(sar)
+	_, err := r.gce.Service.Projects.ServiceAccounts.Create(project, &sar).Do()
 	if err != nil {
 		if googleapiError, ok := err.(*googleapi.Error); ok && googleapiError.Code == 409 {
 			log.Printf("reconcile: Error, the name %s is unavailable because it was used recently", r.spec.Name)
@@ -35,7 +44,8 @@ func (r *ReconcileServiceAccount) create() error {
 }
 
 func (r *ReconcileServiceAccount) destroy() error {
-	_, err := r.gce.Service.Projects.ServiceAccounts.Delete(r.spec.Name).Do()
+	name := utils.ServiceAccountName(r.gce.ProjectID, r.spec.Name)
+	_, err := r.gce.Service.Projects.ServiceAccounts.Delete(name).Do()
 	if err != nil {
 		if googleapiError, ok := err.(*googleapi.Error); ok && googleapiError.Code != 404 {
 			if googleapiError.Code == 400 {
