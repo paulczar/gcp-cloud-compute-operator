@@ -23,6 +23,9 @@ spec:
           command:
           - gcp-cloud-compute-operator
           imagePullPolicy: Always
+          volumeMounts:
+          - name: gcloud
+            mountPath: "/mnt/gcloud"
           env:
             - name: WATCH_NAMESPACE
               valueFrom:
@@ -34,3 +37,13 @@ spec:
                   fieldPath: metadata.name
             - name: OPERATOR_NAME
               value: "gcp-cloud-compute-operator"
+            - name: GOOGLE_APPLICATION_CREDENTIALS
+              value: "/mnt/gcloud/creds"
+      volumes:
+        - name: gcloud
+          secret:
+            secretName: gcp-operator
+            items:
+            - key: google.json
+              path: creds
+              mode: 511
