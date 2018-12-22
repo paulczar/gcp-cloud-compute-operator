@@ -5,7 +5,6 @@ import (
 	"log"
 	"time"
 
-	"github.com/mitchellh/mapstructure"
 	iamv1 "github.com/paulczar/gcp-cloud-compute-operator/pkg/apis/iam/v1"
 	gce "github.com/paulczar/gcp-cloud-compute-operator/pkg/gce/iam"
 	"github.com/paulczar/gcp-cloud-compute-operator/pkg/utils"
@@ -46,7 +45,6 @@ func newReconciler(mgr manager.Manager) reconcile.Reconciler {
 		reconcileResult: reconcile.Result{
 			RequeueAfter: time.Duration(5 * time.Second),
 		},
-		k8sObject: &iamv1.ServiceAccount{},
 	}
 }
 
@@ -87,7 +85,6 @@ type ReconcileServiceAccount struct {
 	reconcileResult reconcile.Result
 	annotations     map[string]string
 	spec            *gceIam.ServiceAccount
-	k8sObject       *iamv1.ServiceAccount
 }
 
 // Reconcile reads that state of the cluster for a ServiceAccount object and makes changes based on the state read
@@ -98,30 +95,29 @@ type ReconcileServiceAccount struct {
 // The Controller will requeue the Request to be processed again if the returned error is non-nil or
 // Result.Requeue is true, otherwise upon completion it will remove the work from the queue.
 func (r *ReconcileServiceAccount) Reconcile(request reconcile.Request) (reconcile.Result, error) {
-	log.Printf("Reconciling IAM Service Account %s/%s\n", request.Namespace, request.Name)
+	kind := "IAM Service Account"
+	log.Printf("Reconciling %s: %s/%s\n", kind, request.Namespace, request.Name)
 
 	var finalizer = utils.Finalizer
-	// Fetch the Address r.k8sObject
-	err := r.client.Get(context.TODO(), request.NamespacedName, r.k8sObject)
+	// Fetch the Address k8sObject
+	k8sObject := &iamv1.ServiceAccount{}
+	err := r.client.Get(context.TODO(), request.NamespacedName, k8sObject)
 	if err != nil {
 		if errors.IsNotFound(err) {
-			log.Printf("Request object not found, could have been deleted after reconcile request.")
+			log.Printf("%s: Request object not found, could have been deleted after reconcile request.", kind)
 			// Owned objects are automatically garbage collected. For additional cleanup logic use finalizers.
 			// Return and don't requeue
 			return reconcile.Result{}, nil
 		}
-		log.Printf("Error reading the object - requeue the request %s.", err.Error())
+		log.Printf("%s: Error reading the object - requeue the request %s.", kind, err.Error())
 		return r.reconcileResult, err
 	}
 
 	// Define a new instance object
-	err = mapstructure.Decode(r.k8sObject.Spec, &r.spec)
-	if err != nil {
-		panic(err)
-	}
+	r.spec = k8sObject.Spec
 
 	// fetch annotations
-	r.annotations = r.k8sObject.GetAnnotations()
+	r.annotations = k8sObject.GetAnnotations()
 
 	// update requeue duration based on annotation
 	duration, err := time.ParseDuration(utils.GetAnnotation(r.annotations, utils.ReconcilePeriodAnnotation))
@@ -139,14 +135,14 @@ func (r *ReconcileServiceAccount) Reconcile(request reconcile.Request) (reconcil
 
 	// check if the resource is set to be deleted
 	// stolen from https://github.com/operator-framework/operator-sdk/blob/fc9b6b1277b644d152534b22614351aa3d1405ba/pkg/ansible/controller/reconcile.go
-	deleted := r.k8sObject.GetDeletionTimestamp() != nil
-	pendingFinalizers := r.k8sObject.GetFinalizers()
+	deleted := k8sObject.GetDeletionTimestamp() != nil
+	pendingFinalizers := k8sObject.GetFinalizers()
 	finalizerExists := len(pendingFinalizers) > 0
 	if !finalizerExists && !deleted && !utils.Contains(pendingFinalizers, finalizer) {
-		log.Printf("Adding finalizer %s to resource", finalizer)
+		log.Printf("Adding finalizer to %s %s/%s", k8sObject.Kind, k8sObject.Namespace, k8sObject.Name)
 		finalizers := append(pendingFinalizers, finalizer)
-		r.k8sObject.SetFinalizers(finalizers)
-		err := r.client.Update(context.TODO(), r.k8sObject)
+		k8sObject.SetFinalizers(finalizers)
+		err := r.client.Update(context.TODO(), k8sObject)
 		if err != nil {
 			return r.reconcileResult, err
 		}
@@ -160,26 +156,26 @@ func (r *ReconcileServiceAccount) Reconcile(request reconcile.Request) (reconcil
 	// if it doesn't existin in gcp and is set to be deleted,
 	// then we can strip out the finalizer to let k8s actually delete it.
 	if gceObject == nil && deleted && finalizerExists {
-		log.Printf("reconcile: remove finalizer %s from %s/%s", finalizer, r.k8sObject.Namespace, r.k8sObject.Name)
+		log.Printf("reconcile: remove finalizer from %s %s/%s", k8sObject.Kind, k8sObject.Namespace, k8sObject.Name)
 		finalizers := []string{}
 		for _, pendingFinalizer := range pendingFinalizers {
 			if pendingFinalizer != finalizer {
 				finalizers = append(finalizers, pendingFinalizer)
 			}
 		}
-		r.k8sObject.SetFinalizers(finalizers)
-		err := r.client.Update(context.TODO(), r.k8sObject)
+		k8sObject.SetFinalizers(finalizers)
+		err := r.client.Update(context.TODO(), k8sObject)
 		if err != nil {
 			return r.reconcileResult, err
 		}
 		//todo fix this to stop requeuing
-		log.Printf("reconcile: Successfully deleted %s/%s, do not requeue", r.k8sObject.Namespace, r.k8sObject.Name)
+		log.Printf("reconcile: Successfully deleted %s/%s, do not requeue", k8sObject.Namespace, k8sObject.Name)
 		return reconcile.Result{Requeue: false}, nil
 		//r.reconcileResult.RequeueAfter, _ = time.ParseDuration("10m")
 	}
 	// if not deleted and gceObject doesn't exist we can create one.
 	if !deleted && gceObject == nil {
-		log.Printf("reconcile: creating IAM Service Account instance %s", r.spec.Name)
+		log.Printf("reconcile: creating %s: %s/%s", kind, k8sObject.Namespace, k8sObject.Name)
 		err := r.create()
 		return r.reconcileResult, err
 	}
@@ -187,7 +183,7 @@ func (r *ReconcileServiceAccount) Reconcile(request reconcile.Request) (reconcil
 	if gceObject != nil {
 		//spew.Dump(gceObject)
 		if deleted && finalizerExists {
-			log.Printf("reconcile: time to delete %s", r.spec.Name)
+			log.Printf("reconcile: deleting %s: %s/%s", kind, k8sObject.Namespace, k8sObject.Name)
 			err := r.destroy()
 			if err != nil {
 				r.reconcileResult.RequeueAfter, _ = time.ParseDuration("5s")
@@ -196,25 +192,25 @@ func (r *ReconcileServiceAccount) Reconcile(request reconcile.Request) (reconcil
 			r.reconcileResult.RequeueAfter, _ = time.ParseDuration("5s")
 			return r.reconcileResult, err
 		}
-		log.Printf("reconcile: resource %s already exists", r.spec.Name)
-		if r.k8sObject.Status.Status == "READY" {
-			log.Printf("reconcile: successfully created %s/%s, change requeue to 10mins so we don't stampede gcp.", r.k8sObject.Namespace, r.k8sObject.Name)
+		log.Printf("reconcile: %s: %s/%s already exists", kind, k8sObject.Namespace, k8sObject.Name)
+		if k8sObject.Status.Status == "READY" {
+			log.Printf("reconcile: successfully created %s: %s/%s, change requeue to 10mins so we don't stampede gcp.", kind, k8sObject.Namespace, k8sObject.Name)
 			r.reconcileResult.RequeueAfter, _ = time.ParseDuration("10m")
 			return r.reconcileResult, nil
 		}
-		if r.k8sObject.Status.Status == "FAILED" {
+		if k8sObject.Status.Status == "FAILED" {
 			return reconcile.Result{}, nil
 		}
 		// update our k8s resource to include status from IAM Service Account
 		if gceObject.UniqueId != "" {
-			r.k8sObject.Status.Status = "READY"
+			k8sObject.Status.Status = "READY"
 		}
-		r.k8sObject.Status.ProjectId = gceObject.ProjectId
-		r.k8sObject.Status.UniqueId = gceObject.UniqueId
-		r.k8sObject.Status.Email = gceObject.Email
-		r.k8sObject.Status.Name = gceObject.Name
-		log.Printf("reconcile: update k8s status for %s/%s", r.k8sObject.Namespace, r.k8sObject.Name)
-		err = r.client.Update(context.TODO(), r.k8sObject)
+		k8sObject.Status.ProjectId = gceObject.ProjectId
+		k8sObject.Status.UniqueId = gceObject.UniqueId
+		k8sObject.Status.Email = gceObject.Email
+		k8sObject.Status.Name = gceObject.Name
+		log.Printf("reconcile: update k8s status %s: for %s/%s", kind, k8sObject.Namespace, k8sObject.Name)
+		err = r.client.Update(context.TODO(), k8sObject)
 		if err != nil {
 			return r.reconcileResult, err
 		}

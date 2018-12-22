@@ -1,6 +1,8 @@
 package v1
 
 import (
+	"github.com/jinzhu/copier"
+	gce "google.golang.org/api/compute/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -12,6 +14,13 @@ type AddressStatus struct {
 	Region    string `json:"region,omitempty"`
 }
 
+// +k8s:deepcopy-gen=false
+
+// AddressSpec is an interface
+//type AddressSpec struct {
+//	*gceCompute.Address
+//}
+
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // Address is the Schema for the addresses API
@@ -20,8 +29,8 @@ type Address struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   map[string]interface{} `json:"spec,omitempty"`
-	Status AddressStatus          `json:"status,omitempty"`
+	Spec   *gce.Address  `json:"spec,omitempty"`
+	Status AddressStatus `json:"status,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -35,4 +44,14 @@ type AddressList struct {
 
 func init() {
 	SchemeBuilder.Register(&Address{}, &AddressList{})
+}
+
+// DeepCopyInto is a deepcopy function, copying the receiver, writing into out. in must be non-nil.
+func (in *Address) DeepCopyInto(out *Address) {
+	*out = *in
+	out.TypeMeta = in.TypeMeta
+	in.ObjectMeta.DeepCopyInto(&out.ObjectMeta)
+	in.Status.DeepCopyInto(&out.Status)
+	copier.Copy(&in.Spec, &out.Spec)
+	return
 }

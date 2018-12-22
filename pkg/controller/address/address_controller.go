@@ -5,7 +5,6 @@ import (
 	"log"
 	"time"
 
-	"github.com/mitchellh/mapstructure"
 	computev1 "github.com/paulczar/gcp-cloud-compute-operator/pkg/apis/compute/v1"
 	"github.com/paulczar/gcp-cloud-compute-operator/pkg/gce"
 	"github.com/paulczar/gcp-cloud-compute-operator/pkg/utils"
@@ -109,11 +108,7 @@ func (r *ReconcileAddress) Reconcile(request reconcile.Request) (reconcile.Resul
 	}
 
 	// Define a new instance object
-	err = mapstructure.Decode(k8sObject.Spec, &r.spec)
-	if err != nil {
-		panic(err)
-	}
-
+	r.spec = k8sObject.Spec
 	// fetch annotations
 	r.annotations = k8sObject.GetAnnotations()
 

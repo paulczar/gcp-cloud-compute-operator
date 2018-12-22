@@ -14,8 +14,8 @@ func (r *ReconcileAddress) read() (*compute.Address, error) {
 	address, err := r.gce.Service.Addresses.Get(r.gce.ProjectID, region, name).Do()
 	if err != nil {
 		if googleapiError, ok := err.(*googleapi.Error); ok && googleapiError.Code != 404 {
-			return nil, err
 			log.Printf("reconcile error: something strange went wrong with %s/%s - %s", region, name, err.Error())
+			return nil, err
 		}
 	}
 	return address, nil

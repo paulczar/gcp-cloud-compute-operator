@@ -5,7 +5,6 @@ import (
 	"log"
 	"time"
 
-	"github.com/mitchellh/mapstructure"
 	computev1 "github.com/paulczar/gcp-cloud-compute-operator/pkg/apis/compute/v1"
 	"github.com/paulczar/gcp-cloud-compute-operator/pkg/gce"
 	"github.com/paulczar/gcp-cloud-compute-operator/pkg/utils"
@@ -111,10 +110,7 @@ func (r *ReconcileNetwork) Reconcile(request reconcile.Request) (reconcile.Resul
 	var kind = r.k8sObject.TypeMeta.Kind
 
 	// Define a new instance object
-	err = mapstructure.Decode(r.k8sObject.Spec, &r.spec)
-	if err != nil {
-		panic(err)
-	}
+	r.spec = r.k8sObject.Spec
 
 	// fetch annotations
 	r.annotations = r.k8sObject.GetAnnotations()
