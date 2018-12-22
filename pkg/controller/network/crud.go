@@ -32,10 +32,9 @@ func (r *ReconcileNetwork) create() error {
 		if googleapiError, ok := err.(*googleapi.Error); ok && googleapiError.Code == 409 {
 			log.Printf("reconcile: Error, the name %s is unavailable because it was used recently", r.spec.Name)
 			return fmt.Errorf("Error, the name %s is unavailable because it was used recently", r.spec.Name)
-		} else {
-			log.Printf("Error, failed to create resource %s: %s", r.spec.Name, err)
-			return fmt.Errorf("Error, failed to create resource %s: %s", r.spec.Name, err)
 		}
+		log.Printf("Error, failed to create resource %s: %s", r.spec.Name, err)
+		return fmt.Errorf("Error, failed to create resource %s: %s", r.spec.Name, err)
 	}
 	return nil
 }

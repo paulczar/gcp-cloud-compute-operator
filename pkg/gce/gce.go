@@ -13,7 +13,7 @@ type Client struct {
 	ProjectID string
 }
 
-// CreateGCECloud creates a new instance of GCECloud.
+// New creates a new instance of GCECloud.
 func New(project string) (*Client, error) {
 	// Use oauth2.NoContext if there isn't a good context to pass in.
 	ctx := context.TODO()
