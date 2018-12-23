@@ -67,5 +67,6 @@ rules:
   - iam.google.golang.org
   resources:
   - '*'
+  - serviceaccountkeys
   verbs:
   - '*'

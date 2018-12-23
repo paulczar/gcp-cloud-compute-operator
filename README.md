@@ -6,14 +6,20 @@ The goal of the Operator is to provide a bare minimum set of Kubernetes CRDs to 
 
 Currently supports creating and destroying the following GCP Services:
 
-* Addresses
-* Images
-* Firewalls
-* Networks
-* Subnetworks
-* Forwarding Rules
-* Target Pools
-* Instances
+> Note: the Kubernetes resource spec for your requests should match the GCP Go SDK
+structures.
+
+* [Compute](https://godoc.org/google.golang.org/api/compute/v1)
+  * [Addresses](https://godoc.org/google.golang.org/api/compute/v1#Address)
+  * [Images](https://godoc.org/google.golang.org/api/compute/v1#Image)
+  * [Firewalls](https://godoc.org/google.golang.org/api/compute/v1#Firewall)
+  * [Networks](https://godoc.org/google.golang.org/api/compute/v1#Network)
+  * [Subnetworks](https://godoc.org/google.golang.org/api/compute/v1#Subnetwork)
+  * [Forwarding Rules](https://godoc.org/google.golang.org/api/compute/v1#ForwardingRule)
+  * [Target Pools](https://godoc.org/google.golang.org/api/compute/v1#TargetPool)
+  * [Instances](https://godoc.org/google.golang.org/api/compute/v1#Instance)
+* [IAM](https://godoc.org/google.golang.org/api/iam/v1)
+  * [Service Accounts](https://godoc.org/google.golang.org/api/iam/v1#ServiceAccount)
 
 
 
@@ -32,6 +38,9 @@ You can set the following Annotations:
 | Annotation | Description |
 | ---------- | ----------- |
 | `compute.gce/project-id` | Sets the GCP Project ID if different to that used in operator service account |
+| `iam.gce/serviceAccountName` | Sets the service account name for service account keys |
+| `iam.gce/secretName` | Sets the secret name for service account keys |
+| `iam.gce/secretNamespace` | Sets the secret namespace for service account keys |
 
 
 ## Example Usage

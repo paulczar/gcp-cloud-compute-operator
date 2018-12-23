@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"fmt"
 	"strings"
 )
 
@@ -11,6 +12,8 @@ const (
 	ReconcilePeriodAnnotation = "compute.gce/reconcile-period"
 	// ProjectIDAnnotation is the annotation for accept an alternative Project ID
 	ProjectIDAnnotation = "compute.gce/project-id"
+	// ServiceAccountAnnotation is the annotation to specify a serviceAccountName for IAM tasks
+	ServiceAccountAnnotation = "iam.gce/serviceAccountName"
 )
 
 // GetAnnotation returns a thing
@@ -45,8 +48,20 @@ func ServiceAccountName(projectID, name string) string {
 // ServiceAccountEmail takes the projectid and a name and returns
 // a valid service account email  address
 func ServiceAccountEmail(projectID, name string) string {
-	if strings.Contains(name, ".iam.gserviceaccount.com") {
+	if strings.Contains(name, "@") {
 		return name
 	}
-	return name + "@" + projectID + ".iam.gserviceaccount.com"
+	return fmt.Sprintf("%s@%s.iam.gserviceaccount.com", name, projectID)
+}
+
+// ServiceAccountFQN creates the fully qualified name of the service account
+func ServiceAccountFQN(projectID, name string) string {
+	// If the service account id is already the fully qualified name
+	if strings.HasPrefix(name, "projects/") {
+		return name
+	}
+	if strings.Contains(name, "@") {
+		return "projects/-/serviceAccounts/" + name
+	}
+	return fmt.Sprintf("projects/-/serviceAccounts/%s@%s.iam.gserviceaccount.com", name, projectID)
 }
