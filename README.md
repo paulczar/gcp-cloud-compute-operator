@@ -26,7 +26,7 @@ structures.
 ## Add new gcp compute service
 
 ```
-API=compute.google.golang.org/v1 KIND=Image
+API=dns.google.golang.org/v1 KIND=ManagedZone
 operator-sdk add api --api-version=$API --kind=$KIND
 operator-sdk add controller --api-version=$API --kind=$KIND
 ```

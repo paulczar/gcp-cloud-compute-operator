@@ -1,0 +1,7 @@
+apiVersion: dns.google.golang.org/v1
+kind: ManagedZone
+metadata:
+  name: example-managedzone
+spec:
+  # Add fields here
+  size: 3

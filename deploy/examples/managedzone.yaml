@@ -1,0 +1,9 @@
+apiVersion: dns.google.golang.org/v1
+kind: ManagedZone
+metadata:
+  name: example-managedzone
+spec:
+  # Add fields here
+  name: test-zone
+  dnsName: omg.bbq.wtf.
+  description: test example zone
