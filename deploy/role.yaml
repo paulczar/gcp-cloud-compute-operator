@@ -74,5 +74,6 @@ rules:
   - dns.google.golang.org
   resources:
   - '*'
+  - records
   verbs:
   - '*'

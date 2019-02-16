@@ -14,6 +14,8 @@ const (
 	ProjectIDAnnotation = "compute.gce/project-id"
 	// ServiceAccountAnnotation is the annotation to specify a serviceAccountName for IAM tasks
 	ServiceAccountAnnotation = "iam.gce/serviceAccountName"
+	// ManagedZoneAnnotation is the annotation to specify a managed zone for DNS tasks
+	ManagedZoneAnnotation = "dns.gce/zone"
 )
 
 // GetAnnotation returns a thing

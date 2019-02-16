@@ -20,13 +20,15 @@ structures.
   * [Instances](https://godoc.org/google.golang.org/api/compute/v1#Instance)
 * [IAM](https://godoc.org/google.golang.org/api/iam/v1)
   * [Service Accounts](https://godoc.org/google.golang.org/api/iam/v1#ServiceAccount)
-
+* [DNS](https://godoc.org/google.golang.org/api/dns/v1)
+  * [ManagedZone](https://godoc.org/google.golang.org/api/iam/v1/#ManagedZone)
+  * [RecordSet](https://godoc.org/google.golang.org/api/iam/v1/#RecordSet)
 
 
 ## Add new gcp compute service
 
 ```
-API=dns.google.golang.org/v1 KIND=ManagedZone
+API=dns.google.golang.org/v1 KIND=Record
 operator-sdk add api --api-version=$API --kind=$KIND
 operator-sdk add controller --api-version=$API --kind=$KIND
 ```

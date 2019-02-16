@@ -1,0 +1,11 @@
+apiVersion: dns.google.golang.org/v1
+kind: Record
+metadata:
+  name: example-record
+  annotations:
+    dns.gce/zone: "pivlab.gcp.paulczar.wtf."
+spec:
+  name: "test.pivlab.gcp.paulczar.wtf."
+  type: "A"
+  ttl: 120
+  rrdatas: ["120.0.0.2"]
